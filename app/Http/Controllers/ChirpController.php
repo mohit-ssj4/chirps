@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Chirp;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,7 +16,7 @@ class ChirpController extends Controller
     public function index(): View
     {
         return view('chirps.index', [
-            'chirps' => Chirp::with('user')->latest()->get()
+            'chirps' => Chirp::with('user')->latest()->paginate(5)
         ]);
     }
 
@@ -51,18 +52,34 @@ class ChirpController extends Controller
 
     /**
      * Show the form for editing the specified resource.
+     *
+     * @throws AuthorizationException
      */
-    public function edit(Chirp $chirp)
+    public function edit(Chirp $chirp): View
     {
-        //
+        $this->authorize('update', $chirp);
+
+        return view('chirps.edit', [
+            'chirp' => $chirp
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
+     *
+     * @throws AuthorizationException
      */
-    public function update(Request $request, Chirp $chirp)
+    public function update(Request $request, Chirp $chirp): RedirectResponse
     {
-        //
+        $this->authorize('update', $chirp);
+
+        $validated = $request->validate([
+            'message' => 'required|string|max:255',
+        ]);
+
+        $chirp->update($validated);
+
+        return redirect(route('chirps.index'));
     }
 
     /**
